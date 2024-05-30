@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+	body {
+		background-color: black;
+		margin: 0;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		height: 100vh;
+	}
+
+	#startScreen, #difficultyScreen {
+		background-color: black;
+		display: inline-block;
+		text-align: center;
+		width: 800px;
+		height: 600px;
+		border: 2px solid white;
+		transform: translateX(21vw);
+	}
+
+	button {
+		font-size: 20px;
+		margin: 10px;
+		margin-top:10%;
+	}
+	#winScreen{
+		width: 800px;
+		height: 600px;
+		border: 2px solid white;
+	}
+
+	</style>
+</head>
+<body>
+	<div id="startScreen">
+	<p style="color: white; font-size: 40px;">Ping Pong</p>
+	<p style="color: white; font-size: 20px; text-decoration: underline;">Instructions</p>
+	<p style="color: white;">Using W and S to control for P1, Up and Down arrow keys for P2</p>
+	<p style="color: white;">First to reach 20 points wins</p>
+	<p style="color: white;">Press 1P to play against bots</pP>
+	<p style="color: white;">Press 2P to play against your friend</p>
+		<button onclick="start1P()">1P</button>
+		<button onclick="start2P()">2P</button>
+	</div>
+
+	<div id="difficultyScreen" style="display:none;">
+	<p style="color: white; font-size: 40px;">Ping Pong</p>
+	<p style="color: white; font-size: 30px; margin-top:20%;">Choose Your Difficulty</p>
+		<button onclick="startGame('easy')">Easy</button>
+		<button onclick="startGame('medium')">Medium</button>
+		<button onclick="startGame('hard')">Hard</button>
+	</div>
+
+	<div id="winScreen" style="display:none; text-align: center; color: white;">
+		<p style= "margin-top:25%; font-size: 40px;" id="winMessage" style="font-size: 40px;"></p>
+		<button onclick="restartgame()">Play Again</button>
+	</div>
+
+	<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+	<script>
+		var canvas;
+		var canvasContext;
+		var ballx = 400;
+		var bally = 300;
+		var speedx = -7;
+		var speedy = 0;
+		var leftpaddley;
+		var rightpaddley;
+		var player1score = 0;
+		var player2score = 0;
+		var aiSpeed = 0;
+		var twoplayermode = false;
+		var gameInterval;
+
+		document.addEventListener("keydown", function(event) {
+			if (twoplayermode) {
+				if (event.key === "ArrowUp") {
+					rightpaddley = rightpaddley - 15;
+				}
+				else if (event.key === "ArrowDown") {
+					rightpaddley = rightpaddley + 15;
+				}
+				if (rightpaddley < (-30)) {
+					rightpaddley = (-30);
+				}
+				if (rightpaddley > canvas.height - canvas.height * 0.2 + 30) {
+					rightpaddley = canvas.height - canvas.height * 0.2 + 30;
+				}
+				if (event.key === "w") {
+					leftpaddley = leftpaddley - 15;
+				}
+				else if (event.key === "s") {
+					leftpaddley = leftpaddley + 15;
+				}
+				if (leftpaddley < (-30)) {
+					leftpaddley = (-30);
+				}
+				if (leftpaddley > canvas.height - canvas.height * 0.2 + 30) {
+					leftpaddley = canvas.height - canvas.height * 0.2 + 30;
+				}
+			}
+			else{
+				if (event.key === "w") {
+					leftpaddley = leftpaddley - 15;
+				}
+				else if (event.key === "s") {
+					leftpaddley = leftpaddley + 15;
+				}
+				if (leftpaddley < (-30)) {
+					leftpaddley = (-30);
+				}
+				if (leftpaddley > canvas.height - canvas.height * 0.2 + 30) {
+					leftpaddley = canvas.height - canvas.height * 0.2 + 30;
+				}
+			}
+		});
+
+		function start1P() {
+			document.getElementById('startScreen').style.display = 'none';
+			document.getElementById('difficultyScreen').style.display = 'block';
+		}
+
+		function start2P() {
+			document.getElementById('startScreen').style.display = 'none';
+			startGame('2P');
+		}
+
+
+		function startGame(difficulty) {
+			clearInterval(gameInterval);
+			if (difficulty) {
+				switch(difficulty) {
+					case 'easy':
+						aiSpeed = 3;
+						break;
+					case 'medium':
+						aiSpeed = 5;
+						break;
+					case 'hard':
+						aiSpeed = 8;
+						break;
+					case '2P':
+						twoplayermode = true;
+						break;
+				}
+				document.getElementById('difficultyScreen').style.display = 'none';
+			}
+
+			document.getElementById('gameCanvas').style.display = 'block';
+			document.getElementById('winScreen').style.display = 'none';
+			canvas = document.getElementById('gameCanvas');
+			canvasContext = canvas.getContext('2d');
+			leftpaddley = canvas.height * 0.4;
+			rightpaddley = canvas.height * 0.4;
+
+			gameInterval = setInterval(function(){
+				printing();
+				ballmovement();
+				if(!twoplayermode){
+					AImovement();
+				}
+			}, 1000 / 60);
+    	}
+
+		function ballmovement() {
+			ballx = ballx + speedx;
+			bally = bally + speedy;
+			if (bally > canvas.height || bally < 0) {
+				speedy = speedy * -1;
+			}
+			if (ballx < 15 && bally > leftpaddley && bally < leftpaddley + canvas.height * 0.2) {
+				speedx = -speedx;
+				var diff = bally - (leftpaddley + canvas.height * 0.1);
+				speedy = diff * 0.25;
+			}
+			if (ballx > canvas.width - 15 && bally > rightpaddley && bally < rightpaddley + canvas.height * 0.2) {
+				speedx = -speedx;
+			}
+			if (ballx > canvas.width) {
+				ballx = canvas.width / 2;
+				bally = canvas.height / 2;
+				speedx = -7;
+				speedy = 0;
+				player1score = player1score + 1;
+				checkwin();
+			}
+			if (ballx < 0) {
+				ballx = canvas.width / 2;
+				bally = canvas.height / 2;
+				speedx = -7;
+				speedy = 0;
+				player2score = player2score + 1;
+				checkwin();
+			}
+		}
+
+		function AImovement() {
+			if (rightpaddley + canvas.height * 0.1 > bally + 30) {
+				rightpaddley = rightpaddley - aiSpeed;
+			} else if (rightpaddley + canvas.height * 0.1 < bally - 30) {
+				rightpaddley = rightpaddley + aiSpeed;
+			}
+		}
+
+		function checkwin(){
+			if(player1score >19){
+				document.getElementById('winMessage').textContent = "P1 has won!";
+				document.getElementById('winScreen').style.display = 'block';
+				document.getElementById('gameCanvas').style.display = 'none';
+			}
+			else if (player2score >19){
+				document.getElementById('winMessage').textContent = "P2 has won!";
+				document.getElementById('winScreen').style.display = 'block';
+				document.getElementById('gameCanvas').style.display = 'none';
+			}
+		}
+
+		function restartgame(){
+			clearInterval(gameInterval);
+			document.getElementById('winScreen').style.display = 'none';
+			document.getElementById('gameCanvas').style.display = 'none';
+			document.getElementById('startScreen').style.display = 'block';
+			document.getElementById('startScreen').style.transform = 'none';
+			document.getElementById('difficultyScreen').style.display = 'none';
+			document.getElementById('difficultyScreen').style.transform = 'none';
+			player1score = 0;
+			player2score = 0;
+			ballx = 400;
+			bally = 300;
+			speedx = -7;
+			speedy = 0;
+		}
+
+		function printing() {
+			canvasContext.fillStyle = 'black';
+			canvasContext.fillRect(0, 0, canvas.width, canvas.height);
+
+			canvasContext.strokeStyle = 'white';
+			canvasContext.lineWidth = 5;
+			canvasContext.strokeRect(0, 0, canvas.width, canvas.height);		
+
+			canvasContext.fillStyle = 'white';
+			canvasContext.beginPath();
+			canvasContext.arc(ballx, bally, 10, 0, Math.PI * 2, true);
+			canvasContext.fill();
+
+			canvasContext.fillText("Player1", 100, 80);
+			canvasContext.fillText(player1score, 115, 100);
+			canvasContext.fillText("Player2", canvas.width - 140, 80);
+			canvasContext.fillText(player2score, canvas.width - 125, 100);
+
+			canvasContext.fillStyle = 'grey';
+			canvasContext.fillRect(0, leftpaddley, 10, canvas.height * 0.2);
+			canvasContext.fillStyle = 'grey';
+			canvasContext.fillRect(canvas.width - 10, rightpaddley, 10, canvas.height * 0.2);
+		}
+	</script>
+</body>
+</html>
